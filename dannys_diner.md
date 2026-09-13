@@ -37,9 +37,83 @@ GROUP BY customer_id;
 
 ## 3. What was the first item from the menu purchased by each customer?
 
+```
+WITH ranked_purchases AS (
+ 	SELECT
+  		s.customer_id,
+		RANK() OVER (
+          PARTITION BY s.customer_id
+          ORDER BY s.order_date
+        ) as rank,
+    	m.product_name
+  	FROM sales s
+  	JOIN menu m ON
+	s.product_id=m.product_id
+)
+
+SELECT customer_id, product_name
+FROM ranked_purchases
+WHERE rank = 1;
+```
+
+| customer_id | product_name |
+|:-----------:|:------------:|
+| A           | curry        |
+| A           | sushi        |
+| B           | curry        |
+| C           | ramen        |
+| C           | ramen        |
+
 ## 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
 
+```
+SELECT
+	m.product_name,
+    COUNT(m.product_name) AS purchases
+FROM sales s
+JOIN menu m ON
+	s.product_id=m.product_id
+GROUP BY m.product_name
+ORDER BY purchases DESC
+LIMIT 1;
+```
+
+| product_name | purchases |
+|:------------:|:---------:|
+| ramen        | 8         |
+
 ## 5. Which item was the most popular for each customer?
+
+```
+WITH ranked_purchases AS (
+  SELECT
+  	s.customer_id,
+  	COUNT(m.product_name) AS purchases,
+  	RANK() OVER (
+      PARTITION BY s.customer_id
+      ORDER BY COUNT(m.product_name)
+	) as rank,
+  	m.product_name
+  FROM sales s
+  JOIN menu m ON
+  	s.product_id=m.product_id
+  GROUP BY s.customer_id, m.product_name
+)
+
+SELECT
+	customer_id,
+    product_name
+FROM ranked_purchases
+WHERE rank = 1;
+```
+
+| customer_id | product_name |
+|:-----------:|:------------:|
+| A           | sushi        |
+| B           | ramen        |
+| B           | curry        |
+| B           | sushi        |
+| C           | ramen        |
 
 ## 6. Which item was purchased first by the customer after they became a member?
 
