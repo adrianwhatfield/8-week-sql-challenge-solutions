@@ -1,4 +1,4 @@
 # 8-week-sql-challenge-solutions
 My solutions to the [8 Week SQL Challenge](https://8weeksqlchallenge.com/) by Danny Ma.
 
-[Danny's Diner](dannys_diner.md): 5/10
+[Danny's Diner](dannys_diner.md): 8/10

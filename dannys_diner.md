@@ -117,9 +117,76 @@ WHERE rank = 1;
 
 ## 6. Which item was purchased first by the customer after they became a member?
 
+```
+WITH ranked_sales AS (
+  SELECT c.customer_id, s.product_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY c.customer_id
+      ORDER BY s.order_date
+    ) as rank
+  FROM sales s
+  JOIN members c ON c.customer_id = s.customer_id
+  AND s.order_date > c.join_date
+)
+
+SELECT r.customer_id, m.product_name
+FROM ranked_sales r
+JOIN menu m ON r.product_id = m.product_id
+WHERE rank = 1;
+```
+
+| customer_id | product_name |
+|:-----------:|:------------:|
+| B           | sushi        |
+| A           | ramen        |
+
 ## 7. Which item was purchased just before the customer became a member?
 
+```
+WITH ranked_sales AS (
+  SELECT c.customer_id, s.product_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY c.customer_id
+      ORDER BY s.order_date DESC
+    ) as rank
+  FROM sales s
+  JOIN members c ON c.customer_id = s.customer_id
+  AND s.order_date < c.join_date
+)
+
+SELECT r.customer_id, m.product_name
+FROM ranked_sales r
+JOIN menu m ON r.product_id = m.product_id
+WHERE rank = 1;
+```
+
+| customer_id | product_name |
+|:-----------:|:------------:|
+| B           | sushi        |
+| A           | sushi        |
+
 ## 8. What is the total items and amount spent for each member before they became a member?
+
+```
+WITH before_member AS (
+  SELECT c.customer_id, s.product_id
+  FROM sales s
+  JOIN members c ON c.customer_id = s.customer_id
+  AND s.order_date < c.join_date
+)
+
+SELECT b.customer_id,
+  SUM(m.price) AS total_spent,
+  COUNT(b.product_id) as total_items
+FROM before_member b
+JOIN menu m ON b.product_id = m.product_id
+GROUP BY b.customer_id;
+```
+
+| customer_id | total_spent | total_items |
+|:-----------:|:-----------:|:-----------:|
+| B           | 40          | 3           |
+| A           | 25          | 2           |
 
 ## 9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
 
