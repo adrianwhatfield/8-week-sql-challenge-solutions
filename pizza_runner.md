@@ -28,15 +28,19 @@ FROM customer_orders;
 
 ```
 SELECT
+runner_id,
 COUNT(order_id) AS successful_orders
 FROM runner_orders
 WHERE pickup_time IS NOT NULL
-AND pickup_time NOT LIKE 'null';
+AND pickup_time NOT LIKE 'null'
+GROUP BY runner_id;
 ```
 
-| successful_orders |
-|:-----------------:|
-| 8                 |
+| runner_id | successful_orders |
+|-----------|:-----------------:|
+| 3         | 1                 |
+| 2         | 3                 |
+| 1         | 4                 |
 
 4. How many of each type of pizza was delivered?
 5. How many Vegetarian and Meatlovers were ordered by each customer?
