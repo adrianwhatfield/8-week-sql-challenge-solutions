@@ -101,6 +101,95 @@ FROM pizza_count;
 | 3               |
 
 7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+
+In this challenge, I decided to clean the `exclusions` and `extras` columns to all equal `''`, rather than `'null'`.
+
+```
+UPDATE customer_orders
+SET exclusions = ''
+WHERE exclusions = 'null';
+
+UPDATE customer_orders
+SET extras = ''
+WHERE extras = 'null';
+
+SELECT
+  co.customer_id,
+  SUM(
+    CASE
+      WHEN co.exclusions <> '' OR co.extras <> '' THEN 1
+      ELSE 0
+    END
+  ) AS at_least_one_change,
+  SUM(
+    CASE
+      WHEN co.exclusions = '' AND co.extras = '' THEN 1
+      ELSE 0
+    END
+  ) AS no_change
+FROM customer_orders co
+JOIN runner_orders r ON co.order_id = r.order_id
+WHERE r.pickup_time <> 'null'
+GROUP BY co.customer_id
+ORDER BY co.customer_id;
+```
+
+| customer_id | at_least_one_change | no_change |
+|:-----------:|:-------------------:|:---------:|
+| 101         | 0                   | 2         |
+| 102         | 0                   | 2         |
+| 103         | 3                   | 0         |
+| 104         | 2                   | 1         |
+| 105         | 1                   | 0         |
+
 8. How many pizzas were delivered that had both exclusions and extras?
+
+```
+SELECT COUNT(co.order_id) AS pizza_count_with_both
+FROM customer_orders co
+JOIN runner_orders r ON co.order_id = r.order_id
+WHERE r.pickup_time <> 'null' 
+  AND co.exclusions <> '' AND co.extras <> '';
+```
+
+| pizza_count_with_both |
+|:---------------------:|
+| 1                     |
+
 9. What was the total volume of pizzas ordered for each hour of the day?
+
+```
+SELECT
+date_part('hour', order_time::timestamp) AS hour_of_day,
+COUNT(order_id) AS pizzas_ordered
+FROM customer_orders
+GROUP BY hour_of_day
+ORDER BY hour_of_day;
+```
+
+| hour_of_day | pizzas_ordered |
+|:-----------:|:--------------:|
+| 11          | 1              |
+| 13          | 3              |
+| 18          | 3              |
+| 19          | 1              |
+| 21          | 3              |
+| 23          | 3              |
+
 10. What was the volume of orders for each day of the week?
+
+```
+SELECT
+TO_CHAR(order_time::timestamp, 'Day') AS day_of_week,
+COUNT(order_id) AS pizzas_ordered
+FROM customer_orders
+GROUP BY day_of_week
+ORDER BY pizzas_ordered DESC;
+```
+
+| day_of_week | pizzas_ordered |
+|:-----------:|:--------------:|
+| Saturday    | 5              |
+| Wednesday   | 5              |
+| Thursday    | 3              |
+| Friday      | 1              |
