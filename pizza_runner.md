@@ -1,5 +1,43 @@
 # Pizza Runner
 
+## Cleaning the Data
+
+```
+UPDATE runner_orders
+SET cancellation = NULL
+WHERE cancellation = 'null';
+
+UPDATE runner_orders
+SET distance = NULL
+WHERE distance = 'null';
+
+UPDATE runner_orders
+SET duration = NULL
+WHERE duration = 'null';
+
+ALTER TABLE runner_orders
+RENAME COLUMN distance to distance_km;
+
+ALTER TABLE runner_orders
+RENAME COLUMN duration to duration_mins;
+
+UPDATE runner_orders
+SET distance_km = CAST(TRIM(REPLACE(distance_km, 'km', '')) AS DOUBLE PRECISION);
+
+UPDATE runner_orders
+SET duration_mins = CAST(TRIM(
+  regexp_replace(duration_mins, '[\s]*(minute|min)[s]?', '', 'i')
+) AS INT);
+
+UPDATE customer_orders
+SET exclusions = ''
+WHERE exclusions = 'null';
+
+UPDATE customer_orders
+SET extras = ''
+WHERE extras = 'null';
+```
+
 ## A: Pizza Metrics
 
 1. How many pizzas were ordered?
@@ -32,7 +70,6 @@ runner_id,
 COUNT(order_id) AS successful_orders
 FROM runner_orders
 WHERE pickup_time IS NOT NULL
-AND pickup_time NOT LIKE 'null'
 GROUP BY runner_id;
 ```
 
@@ -102,17 +139,7 @@ FROM pizza_count;
 
 7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
 
-In this challenge, I decided to clean the `exclusions` and `extras` columns to all equal `''`, rather than `'null'`.
-
 ```
-UPDATE customer_orders
-SET exclusions = ''
-WHERE exclusions = 'null';
-
-UPDATE customer_orders
-SET extras = ''
-WHERE extras = 'null';
-
 SELECT
   co.customer_id,
   SUM(
@@ -129,7 +156,7 @@ SELECT
   ) AS no_change
 FROM customer_orders co
 JOIN runner_orders r ON co.order_id = r.order_id
-WHERE r.pickup_time <> 'null'
+WHERE r.pickup_time IS NOT NULL
 GROUP BY co.customer_id
 ORDER BY co.customer_id;
 ```
@@ -148,7 +175,7 @@ ORDER BY co.customer_id;
 SELECT COUNT(co.order_id) AS pizza_count_with_both
 FROM customer_orders co
 JOIN runner_orders r ON co.order_id = r.order_id
-WHERE r.pickup_time <> 'null' 
+WHERE r.pickup_time IS NOT NULL 
   AND co.exclusions <> '' AND co.extras <> '';
 ```
 
@@ -193,3 +220,4 @@ ORDER BY pizzas_ordered DESC;
 | Wednesday   | 5              |
 | Thursday    | 3              |
 | Friday      | 1              |
+<> 'null'
