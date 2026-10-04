@@ -5,6 +5,6 @@ My solutions to the [8 Week SQL Challenge](https://8weeksqlchallenge.com/) by Da
 
 [Pizza Runner](pizza_runner.md):
 - A. 10/10
-- B. 0/7
+- B. 4/7
 - C: 0/6
 - D: 0/5

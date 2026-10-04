@@ -8,6 +8,10 @@ SET cancellation = NULL
 WHERE cancellation = 'null';
 
 UPDATE runner_orders
+SET cancellation = NULL
+WHERE cancellation = '';
+
+UPDATE runner_orders
 SET distance = NULL
 WHERE distance = 'null';
 
@@ -19,10 +23,14 @@ ALTER TABLE runner_orders
 RENAME COLUMN distance to distance_km;
 
 ALTER TABLE runner_orders
-RENAME COLUMN duration to duration_mins;
+ALTER COLUMN distance_km TYPE DOUBLE PRECISION
+USING NULLIF(
+  TRIM(REPLACE(distance_km, 'km', '')),
+  ''
+)::DOUBLE PRECISION;
 
-UPDATE runner_orders
-SET distance_km = CAST(TRIM(REPLACE(distance_km, 'km', '')) AS DOUBLE PRECISION);
+ALTER TABLE runner_orders
+RENAME COLUMN duration to duration_mins;
 
 UPDATE runner_orders
 SET duration_mins = CAST(TRIM(
@@ -220,4 +228,91 @@ ORDER BY pizzas_ordered DESC;
 | Wednesday   | 5              |
 | Thursday    | 3              |
 | Friday      | 1              |
-<> 'null'
+
+## B. Runner and Customer Experience
+
+1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
+
+```
+SELECT
+TO_CHAR(registration_date::timestamp, 'W') AS registration_week,
+COUNT(runner_id) AS runners_signed_up
+FROM runners
+GROUP BY registration_week
+ORDER BY registration_week;
+```
+
+| registration_week | runners_signed_up |
+|:-----------------:|:-----------------:|
+| 1                 | 2                 |
+| 2                 | 1                 |
+| 3                 | 1                 |
+
+2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+
+```
+SELECT
+ro.runner_id,
+ROUND(AVG(EXTRACT(EPOCH FROM (ro.pickup_time::timestamp - co.order_time::timestamp)) / 60)) AS time_to_pickup
+FROM runner_orders ro
+JOIN customer_orders co ON ro.order_id = co.order_id
+WHERE ro.cancellation IS NULL
+GROUP BY ro.runner_id;
+```
+
+| runner_id | time_to_pickup |
+|:---------:|:--------------:|
+| 1         | 18             |
+| 2         | 24             |
+| 3         | 10             |
+
+3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
+
+```
+SELECT
+co.order_id,
+COUNT(co.order_id) AS number_of_pizzas,
+ROUND(AVG(EXTRACT(EPOCH FROM (ro.pickup_time::timestamp - co.order_time::timestamp)) / 60)) AS time_to_prepare
+FROM runner_orders ro
+JOIN customer_orders co ON ro.order_id = co.order_id
+WHERE ro.cancellation IS NULL
+GROUP BY co.order_id
+ORDER BY time_to_prepare DESC;
+```
+
+| order_id | number_of_pizzas | time_to_prepare |
+|:--------:|:----------------:|:---------------:|
+| 4        | 3                | 29              |
+| 3        | 2                | 21              |
+| 8        | 1                | 20              |
+| 10       | 2                | 16              |
+| 7        | 1                | 10              |
+| 5        | 1                | 10              |
+
+Yes, there is a relationship. The orders with the most pizzas usually take the longest.
+
+4. What was the average distance travelled for each customer?
+
+```
+SELECT
+co.customer_id,
+ROUND(AVG(ro.distance_km)) AS avg_distance
+FROM runner_orders ro
+JOIN customer_orders co ON ro.order_id = co.order_id
+WHERE ro.cancellation IS NULL
+GROUP BY co.customer_id;
+```
+
+| customer_id | avg_distance |
+|:-----------:|:------------:|
+| 101         | 20           |
+| 102         | 17           |
+| 105         | 25           |
+| 104         | 10           |
+| 103         | 23           |
+
+5. What was the difference between the longest and shortest delivery times for all orders?
+
+6. What was the average speed for each runner for each delivery and do you notice any trend for these values?
+
+7. What is the successful delivery percentage for each runner?
